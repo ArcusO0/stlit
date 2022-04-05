@@ -90,4 +90,4 @@ print(letnum)
 if letnum == 0:
     st.button(label='Refresh',on_click=busupdate(option))
 else:
-    st.button(label='Refresh',on_click=busupdatenum(optionnum))
+    st.button(label='Refresh',on_click=busupdatenum(optionnum)))
