@@ -53,7 +53,7 @@ closeby = []
 closebyent = []
 closebynum = []
 for i in range(busstopdata.shape[0]):
-    coords1=(int(lat),int(lon))
+    coords1=(float(lat),float(lon))
     coords2 = (float(busstopdata.iloc[i][2]),float(busstopdata.iloc[i][3]))
     #geopy.distance.geodesic(coords1, coords2).km
     if asin(sqrt(sin(coords2[0]-coords1[0] / 2)**2 + cos(coords1[0]) * cos(coords2[0]) * sin(coords2[1]-coords1[1] / 2)**2))*2*6371<1:
