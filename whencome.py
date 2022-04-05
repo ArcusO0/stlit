@@ -45,9 +45,9 @@ for i in range(10):
     busstopdata = pd.concat([busstopdata,pd.DataFrame.from_dict(bus_stops.json()['value'])])
 busstopdata = busstopdata.set_index('BusStopCode')
 print(busstopdata)
-
-lat,lon = os.popen('curl ipinfo.io/loc').read().split(',')
-st.write(lat,lon)
+location = requests.get("http://ip-api.com/json/")
+print(location.json()['lat'])
+lat,lon = location.json()['lat'],location.json()['lon']
 print(lat,lon)
 print(busstopdata.index['Description' == busstopdata.iloc[i][1]])
 closeby = []
