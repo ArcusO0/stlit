@@ -2,10 +2,12 @@ import requests
 import json
 import pandas as pd
 import numpy as np
+from prettytable import PrettyTable
 import time
 from datetime import datetime
 import math
-import geopy.distance
+from math import radians, cos, sin, asin, sqrt
+
 import streamlit as st
 def process_time(times):
     if times != '':
@@ -21,6 +23,8 @@ def process_time(times):
     else:
         return('-')
 info = []
+table = PrettyTable()
+table.field_names=["Bus number","First bus ETA","First bus type","Second bus ETA","Second bus type","Third bus ETA","Third bus type"]
 def getbus(code):
     partinfo = []
     
@@ -29,6 +33,7 @@ def getbus(code):
         
         df = pd.DataFrame.from_dict(response.json()['Services'][i])
         partinfo = ([df.at['OriginCode','ServiceNo'],process_time(df.at['EstimatedArrival','NextBus'][11:19]),df.at['Type','NextBus'].replace("DD","Double-deckered").replace("SD","Single-deckered"),process_time(df.at['EstimatedArrival','NextBus2'][11:19]),df.at['Type','NextBus2'].replace("DD","Double-deckered").replace("SD","Single-deckered"),process_time(df.at['EstimatedArrival','NextBus3'][11:19]),df.at['Type','NextBus3'].replace("DD","Double-deckered").replace("SD","Single-deckered")])
+        table.add_row(partinfo)
         info.append(partinfo)
     myarray = np.array(info)
     bustimes = pd.DataFrame(myarray,columns=['Bus Number','1st Bus ETA','1st Bus type','2nd Bus ETA','2nd Bus type','3rd Bus ETA','3rd Bus type'])
@@ -43,16 +48,17 @@ for i in range(10):
 busstopdata = busstopdata.set_index('BusStopCode')
 print(busstopdata)
 
-g = geocoder.ip('me')
+import os 
+lat,lon = os.popen('curl ipinfo.io/loc').read().split(',')
 print(busstopdata.index['Description' == busstopdata.iloc[i][1]])
 closeby = []
 closebyent = []
 closebynum = []
 for i in range(busstopdata.shape[0]):
-    coords1=(g.latlng[0],g.latlng[1])
+    coords1=(int(lat),int(lon))
     coords2 = (float(busstopdata.iloc[i][2]),float(busstopdata.iloc[i][3]))
-
-    if geopy.distance.geodesic(coords1, coords2).km<1:
+    #geopy.distance.geodesic(coords1, coords2).km
+    if asin(sqrt(sin(coords2[0]-coords1[0] / 2)**2 + cos(coords1[0]) * cos(coords2[0]) * sin(coords2[1]-coords1[1] / 2)**2))*2*6371<1:
         closeby.append([busstopdata.iloc[i][1],busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0]])
         closebyent.append(busstopdata.iloc[i][1])
         closebynum.append(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])
@@ -82,4 +88,4 @@ print(letnum)
 if letnum == 0:
     st.button(label='Refresh',on_click=busupdate(option))
 else:
-    st.button(label='Refresh',on_click=busupdatenum(optionnum))
+    st.button(label='Refresh',on_click=busupdate(optionnum))
