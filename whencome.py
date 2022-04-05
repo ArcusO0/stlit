@@ -47,6 +47,7 @@ busstopdata = busstopdata.set_index('BusStopCode')
 print(busstopdata)
 
 lat,lon = os.popen('curl ipinfo.io/loc').read().split(',')
+st.write(lat,lon)
 print(lat,lon)
 print(busstopdata.index['Description' == busstopdata.iloc[i][1]])
 closeby = []
