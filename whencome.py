@@ -5,9 +5,9 @@ import numpy as np
 import time
 from datetime import datetime
 import math
-from math import radians, cos, sin, asin, sqrt
-
+from math import radians ,cos, sin, asin, sqrt
 import streamlit as st
+import os 
 def process_time(times):
     if times != '':
         now = datetime.now()
@@ -46,8 +46,8 @@ for i in range(10):
 busstopdata = busstopdata.set_index('BusStopCode')
 print(busstopdata)
 
-import os 
 lat,lon = os.popen('curl ipinfo.io/loc').read().split(',')
+print(lat,lon)
 print(busstopdata.index['Description' == busstopdata.iloc[i][1]])
 closeby = []
 closebyent = []
@@ -55,8 +55,12 @@ closebynum = []
 for i in range(busstopdata.shape[0]):
     coords1=(float(lat),float(lon))
     coords2 = (float(busstopdata.iloc[i][2]),float(busstopdata.iloc[i][3]))
+    lon1 ,lat1,lon2,lat2 = map(radians,[coords1[1],coords1[0],coords2[1],coords2[0]])
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1
+    
     #geopy.distance.geodesic(coords1, coords2).km
-    if asin(sqrt(sin(coords2[0]-coords1[0] / 2)**2 + cos(coords1[0]) * cos(coords2[0]) * sin(coords2[1]-coords1[1] / 2)**2))*2*6371<1:
+    if 6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2))<1:
         closeby.append([busstopdata.iloc[i][1],busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0]])
         closebyent.append(busstopdata.iloc[i][1])
         closebynum.append(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])
@@ -86,4 +90,4 @@ print(letnum)
 if letnum == 0:
     st.button(label='Refresh',on_click=busupdate(option))
 else:
-    st.button(label='Refresh',on_click=busupdate(optionnum))
+    st.button(label='Refresh',on_click=busupdatenum(optionnum))
