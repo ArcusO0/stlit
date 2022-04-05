@@ -5,7 +5,7 @@ import numpy as np
 import time
 from datetime import datetime
 import math
-import geocoder.exterded
+import geocoder
 import geopy.distance
 import streamlit as st
 def process_time(times):
