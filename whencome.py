@@ -2,7 +2,6 @@ import requests
 import json
 import pandas as pd
 import numpy as np
-from prettytable import PrettyTable
 import time
 from datetime import datetime
 import math
@@ -23,8 +22,8 @@ def process_time(times):
     else:
         return('-')
 info = []
-table = PrettyTable()
-table.field_names=["Bus number","First bus ETA","First bus type","Second bus ETA","Second bus type","Third bus ETA","Third bus type"]
+
+
 def getbus(code):
     partinfo = []
     
@@ -33,7 +32,6 @@ def getbus(code):
         
         df = pd.DataFrame.from_dict(response.json()['Services'][i])
         partinfo = ([df.at['OriginCode','ServiceNo'],process_time(df.at['EstimatedArrival','NextBus'][11:19]),df.at['Type','NextBus'].replace("DD","Double-deckered").replace("SD","Single-deckered"),process_time(df.at['EstimatedArrival','NextBus2'][11:19]),df.at['Type','NextBus2'].replace("DD","Double-deckered").replace("SD","Single-deckered"),process_time(df.at['EstimatedArrival','NextBus3'][11:19]),df.at['Type','NextBus3'].replace("DD","Double-deckered").replace("SD","Single-deckered")])
-        table.add_row(partinfo)
         info.append(partinfo)
     myarray = np.array(info)
     bustimes = pd.DataFrame(myarray,columns=['Bus Number','1st Bus ETA','1st Bus type','2nd Bus ETA','2nd Bus type','3rd Bus ETA','3rd Bus type'])
