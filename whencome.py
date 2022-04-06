@@ -10,8 +10,6 @@ import streamlit as st
 import os 
 from bokeh.models.widgets import Button
 from bokeh.models import CustomJS
-from bokeh.models.widgets import Button
-from bokeh.models import CustomJS
 from streamlit_bokeh_events import streamlit_bokeh_events
 def process_time(times):
     if times != '':
@@ -30,7 +28,7 @@ info = []
 def getbus(code):
     partinfo = []
     
-    response = requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+code,headers = { 'AccountKey' : 'qV1hBipQTZiK4AHSYmS92Q==', 'accept' : 'application/json'})
+    response = requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+str(code),headers = { 'AccountKey' : 'qV1hBipQTZiK4AHSYmS92Q==', 'accept' : 'application/json'})
     for i in range(len(response.json()['Services'])):
         
         df = pd.DataFrame.from_dict(response.json()['Services'][i])
@@ -40,14 +38,10 @@ def getbus(code):
     bustimes = pd.DataFrame(myarray,columns=['Bus Number','1st Bus ETA','1st Bus type','2nd Bus ETA','2nd Bus type','3rd Bus ETA','3rd Bus type'])
     return(bustimes)
 #print(response.json())
-bus_stops = requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusStops",headers = { 'AccountKey' : 'qV1hBipQTZiK4AHSYmS92Q==', 'accept' : 'application/json'})
-busstopdata = pd.DataFrame.from_dict(bus_stops.json()['value'])
-for i in range(10):
-    bus_stops = requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusStops?$skip="+str((i+1)*500),headers = { 'AccountKey' : 'qV1hBipQTZiK4AHSYmS92Q==', 'accept' : 'application/json'})
-    busstopdata = pd.concat([busstopdata,pd.DataFrame.from_dict(bus_stops.json()['value'])])
+busstopdata = pd.DataFrame()
+busstopdata = pd.read_excel(open("bus_stops.xlsx",'rb'),sheet_name='bus_stops')
 busstopdata = busstopdata.set_index('BusStopCode')
 print(busstopdata)
-print(busstopdata.index['Description' == busstopdata.iloc[i][1]])
 closeby = [' ']
 closebyent = [' ']
 closebynum = [' ']
@@ -57,9 +51,8 @@ def busupdate(name):
             st.table(getbus(closeby[i][1]))
 def busupdatenum(num):
     st.table(getbus(num))
-location = requests.get('http://ip-api.com/json/')
-print(location.json())
-loc_button = Button(label="Get Location")
+loc_button = Button(label="Get Location",width=0,background = 'black')
+
 loc_button.js_on_event("button_click", CustomJS(code="""
     navigator.geolocation.getCurrentPosition(
         (loc) => {
