@@ -13,7 +13,7 @@ from bokeh.models import CustomJS
 from streamlit_bokeh_events import streamlit_bokeh_events
 def process_time(times):
     if times != '':
-        now = datetime.now()+timedelta(hours=-8)
+        now = datetime.now()-timedelta(hours=8)
         now = datetime.strptime(datetime.strftime(now,"%H:%M:%S"),"%H:%M:%S")
         arrival_time = datetime.strptime(times,"%H:%M:%S")
         if arrival_time < now:
