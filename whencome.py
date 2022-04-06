@@ -1,4 +1,3 @@
-from turtle import onclick
 import requests
 import json
 import pandas as pd
