@@ -28,7 +28,7 @@ def process_time(times):
 info = []
 def getbus(code):
     partinfo = []    
-    response = requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+str(code),headers = { 'AccountKey' : 'qV1hBipQTZiK4AHSYmS92Q==', 'accept' : 'application/json'})
+    response = requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+str(code),headers = { 'AccountKey' : st.secrets["key"], 'accept' : 'application/json'})
     for i in range(len(response.json()['Services'])):
         
         df = pd.DataFrame.from_dict(response.json()['Services'][i])
