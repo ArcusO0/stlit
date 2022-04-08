@@ -32,16 +32,14 @@ def getbus(code):
     for i in range(len(response.json()['Services'])):
         
         df = pd.DataFrame.from_dict(response.json()['Services'][i])
-        partinfo = ([df.at['OriginCode','ServiceNo'],process_time(df.at['EstimatedArrival','NextBus'][11:19]),df.at['Type','NextBus'].replace("DD","Double-deck").replace("SD","Single-deck"),process_time(df.at['EstimatedArrival','NextBus2'][11:19]),df.at['Type','NextBus2'].replace("DD","Double-deck").replace("SD","Single-deck"),process_time(df.at['EstimatedArrival','NextBus3'][11:19]),df.at['Type','NextBus3'].replace("DD","Double-deck").replace("SD","Single-deck")])
+        partinfo = ([df.at['OriginCode','ServiceNo'],process_time(df.at['EstimatedArrival','NextBus'][11:19]),df.at['Type','NextBus'].replace("DD","2-deck").replace("SD","1-deck").replace("BD","Bendy")+' '+df.at['Feature','NextBus']+' '+df.at['Load','NextBus'],process_time(df.at['EstimatedArrival','NextBus2'][11:19]),df.at['Type','NextBus2'].replace("DD","2-deck").replace("SD","1-deck").replace("BD","Bendy")+' '+df.at['Feature','NextBus2']+' '+df.at['Load','NextBus2'],process_time(df.at['EstimatedArrival','NextBus3'][11:19]),df.at['Type','NextBus3'].replace("DD","2-deck").replace("SD","1-deck").replace("BD","Bendy")+' '+df.at['Feature','NextBus3']+' '+df.at['Load','NextBus3']])
         info.append(partinfo)
     myarray = np.array(info)
     bustimes = pd.DataFrame(myarray,columns=['Bus Number','1st Bus ETA','1st Bus type','2nd Bus ETA','2nd Bus type','3rd Bus ETA','3rd Bus type'])
-    bustimes['Bus Number'] = pd.to_numeric(bustimes['Bus Number'])
     bustimes = bustimes.set_index('Bus Number')
     bustimes = bustimes.sort_index()
-    print(bustimes)
     return(bustimes)
-#print(response.json())
+    
 busstopdata = pd.DataFrame()
 busstopdata = pd.read_excel(open("bus_stops.xlsx",'rb'),sheet_name='bus_stops')
 busstopdata = busstopdata.set_index('BusStopCode')
@@ -79,7 +77,7 @@ if lat != 0 and lon != 0:
         dlon = lon2 - lon1 
         dlat = lat2 - lat1
         #geopy.distance.geodesic(coords1, coords2).km
-        if 6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2))<1:
+        if 6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2))<1.0:
             closeby.append([busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')',busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0]])
             closebyent.append(busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')')
             dist.append(6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2)))
@@ -90,11 +88,13 @@ if lat != 0 and lon != 0:
     plots = pd.DataFrame(data={'lat':lats,'lon':lons})
     busstops = {'Name':closebyent,'Distance':dist}
     busstopdf = pd.DataFrame(data=busstops)
-    busstopdf.sort_values("Distance")
+    busstopdf['Distance'] = pd.to_numeric(busstopdf['Distance'])
+    busstopdf = busstopdf.sort_values("Distance")
     st.map(plots,zoom = 14)
     option = st.selectbox('Select the name of the bus stop',busstopdf['Name'])
     if option != ' ':
         st.write('You selected:', option)  
+        st.write('Legend: WAB: Wheel-chair accessible \nSEA: seats available\nSDA: Standing available\nLSD: Limited standing')
         st.button(label='Refresh',on_click=busupdate(option))
     else:
         st.write("You haven't selected anything")
