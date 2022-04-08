@@ -3,7 +3,6 @@ import json
 import pandas as pd
 import numpy as np
 import time
-
 import math
 from math import radians ,cos, sin, asin, sqrt
 import streamlit as st
@@ -33,7 +32,7 @@ def getbus(code):
     for i in range(len(response.json()['Services'])):
         
         df = pd.DataFrame.from_dict(response.json()['Services'][i])
-        partinfo = ([df.at['OriginCode','ServiceNo'],process_time(df.at['EstimatedArrival','NextBus'][11:19]),df.at['Type','NextBus'].replace("DD","Double-deckered").replace("SD","Single-deckered"),process_time(df.at['EstimatedArrival','NextBus2'][11:19]),df.at['Type','NextBus2'].replace("DD","Double-deckered").replace("SD","Single-deckered"),process_time(df.at['EstimatedArrival','NextBus3'][11:19]),df.at['Type','NextBus3'].replace("DD","Double-deckered").replace("SD","Single-deckered")])
+        partinfo = ([df.at['OriginCode','ServiceNo'],process_time(df.at['EstimatedArrival','NextBus'][11:19]),df.at['Type','NextBus'].replace("DD","Double-deck").replace("SD","Single-deck"),process_time(df.at['EstimatedArrival','NextBus2'][11:19]),df.at['Type','NextBus2'].replace("DD","Double-deck").replace("SD","Single-deck"),process_time(df.at['EstimatedArrival','NextBus3'][11:19]),df.at['Type','NextBus3'].replace("DD","Double-deck").replace("SD","Single-deck")])
         info.append(partinfo)
     myarray = np.array(info)
     bustimes = pd.DataFrame(myarray,columns=['Bus Number','1st Bus ETA','1st Bus type','2nd Bus ETA','2nd Bus type','3rd Bus ETA','3rd Bus type'])
@@ -46,7 +45,6 @@ def getbus(code):
 busstopdata = pd.DataFrame()
 busstopdata = pd.read_excel(open("bus_stops.xlsx",'rb'),sheet_name='bus_stops')
 busstopdata = busstopdata.set_index('BusStopCode')
-print(busstopdata)
 closeby = []
 closebyent = []
 dist = []
@@ -58,10 +56,7 @@ loc_button = Button(label="Get Location",width=0,background ="#000000")
 loc_button.js_on_event("button_click", CustomJS(code="""
     navigator.geolocation.getCurrentPosition(
         (loc) => {
-            document.dispatchEvent(new CustomEvent("GET_LOCATION", {detail: {lat: loc.coords.latitude, lon: loc.coords.longitude}}))
-        }
-    )
-    """))
+            document.dispatchEvent(new CustomEvent("GET_LOCATION", {detail: {lat: loc.coords.latitude, lon: loc.coords.longitude}}))})"""))
 result = streamlit_bokeh_events(
     loc_button,
     events="GET_LOCATION",
@@ -69,14 +64,13 @@ result = streamlit_bokeh_events(
     refresh_on_update=False,
     override_height=75,
     debounce_time=0)
-lat = 0
-lon = 0
+lat,lon = 0,0
+lats,lons = [],[]
 if result:
     if "GET_LOCATION" in result:
         lat = result.get("GET_LOCATION")['lat']
         lon = result.get("GET_LOCATION")['lon']
-        map_data = pd.DataFrame({'lat':[lat],'lon':[lon]})
-        st.map(map_data)
+        map_data = pd.DataFrame({'lat':[lat],'lon':[lon]})      
 if lat != 0 and lon != 0:
     for i in range(busstopdata.shape[0]):
         coords1=(lat,lon)
@@ -89,9 +83,15 @@ if lat != 0 and lon != 0:
             closeby.append([busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')',busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0]])
             closebyent.append(busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')')
             dist.append(6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2)))
+            lats.append(float(busstopdata.iloc[i][2]))
+            lons.append(float(busstopdata.iloc[i][3]))
+    lats.append(lat)
+    lons.append(lon)
+    plots = pd.DataFrame(data={'lat':lats,'lon':lons})
     busstops = {'Name':closebyent,'Distance':dist}
     busstopdf = pd.DataFrame(data=busstops)
     busstopdf.sort_values("Distance")
+    st.map(plots,zoom = 14)
     option = st.selectbox('Select the name of the bus stop',busstopdf['Name'])
     if option != ' ':
         st.write('You selected:', option)  
