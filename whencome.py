@@ -3,8 +3,7 @@ import json
 import pandas as pd
 import numpy as np
 import time
-import pytz
-from datetime import datetime,timedelta
+
 import math
 from math import radians ,cos, sin, asin, sqrt
 import streamlit as st
@@ -12,6 +11,8 @@ import os
 from bokeh.models.widgets import Button
 from bokeh.models import CustomJS
 from streamlit_bokeh_events import streamlit_bokeh_events
+import pytz
+from datetime import datetime
 def process_time(times):
     if times != '':
         now = datetime.now(pytz.timezone('Asia/Singapore'))
@@ -37,22 +38,24 @@ def getbus(code):
         info.append(partinfo)
     myarray = np.array(info)
     bustimes = pd.DataFrame(myarray,columns=['Bus Number','1st Bus ETA','1st Bus type','2nd Bus ETA','2nd Bus type','3rd Bus ETA','3rd Bus type'])
+    bustimes['Bus Number'] = pd.to_numeric(bustimes['Bus Number'])
+    bustimes = bustimes.set_index('Bus Number')
+    bustimes = bustimes.sort_index()
+    print(bustimes)
     return(bustimes)
 #print(response.json())
 busstopdata = pd.DataFrame()
 busstopdata = pd.read_excel(open("bus_stops.xlsx",'rb'),sheet_name='bus_stops')
 busstopdata = busstopdata.set_index('BusStopCode')
 print(busstopdata)
-closeby = [' ']
-closebyent = [' ']
-closebynum = [' ']
+closeby = []
+closebyent = []
+closebynum = []
 def busupdate(name):
     for i in range(len(closebyent)):
         if name == closeby[i][0]:
             st.table(getbus(closeby[i][1]))
-def busupdatenum(num):
-    st.table(getbus(num))
-loc_button = Button(label="Get Location",width=0,background = 'black')
+loc_button = Button(label="Get Location",width=0,background ="#000000")
 
 loc_button.js_on_event("button_click", CustomJS(code="""
     navigator.geolocation.getCurrentPosition(
@@ -74,7 +77,8 @@ if result:
     if "GET_LOCATION" in result:
         lat = result.get("GET_LOCATION")['lat']
         lon = result.get("GET_LOCATION")['lon']
-
+        map_data = pd.DataFrame({'lat':[lat],'lon':[lon]})
+        st.map(map_data)
 if lat != 0 and lon != 0:
     for i in range(busstopdata.shape[0]):
         coords1=(lat,lon)
@@ -85,17 +89,12 @@ if lat != 0 and lon != 0:
         
 
         #geopy.distance.geodesic(coords1, coords2).km
-        if 6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2))<1:
-            closeby.append([busstopdata.iloc[i][1],busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0]])
-            closebyent.append(busstopdata.iloc[i][1])
-            closebynum.append(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])
+        if 6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2))<0.5:
+            closeby.append([busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')',busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0]])
+            closebyent.append(busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')')
     option = st.selectbox('Select the name of the bus stop',closebyent)
-    optionnum = st.selectbox('Enter the bus stop code',closebynum)  
     if option != ' ':
         st.write('You selected:', option)  
         st.button(label='Refresh',on_click=busupdate(option))
-    elif optionnum != ' ':
-        st.write('You selected:', busstopdata.at[optionnum,'Description'])
-        st.button(label='Refresh',on_click=busupdatenum(optionnum)) 
     else:
         st.write("You haven't selected anything")
