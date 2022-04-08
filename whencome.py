@@ -28,8 +28,7 @@ def process_time(times):
         return('-')
 info = []
 def getbus(code):
-    partinfo = []
-    
+    partinfo = []    
     response = requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+str(code),headers = { 'AccountKey' : 'qV1hBipQTZiK4AHSYmS92Q==', 'accept' : 'application/json'})
     for i in range(len(response.json()['Services'])):
         
@@ -50,13 +49,12 @@ busstopdata = busstopdata.set_index('BusStopCode')
 print(busstopdata)
 closeby = []
 closebyent = []
-closebynum = []
+dist = []
 def busupdate(name):
     for i in range(len(closebyent)):
         if name == closeby[i][0]:
             st.table(getbus(closeby[i][1]))
 loc_button = Button(label="Get Location",width=0,background ="#000000")
-
 loc_button.js_on_event("button_click", CustomJS(code="""
     navigator.geolocation.getCurrentPosition(
         (loc) => {
@@ -86,13 +84,15 @@ if lat != 0 and lon != 0:
         lon1 ,lat1,lon2,lat2 = map(radians,[coords1[1],coords1[0],coords2[1],coords2[0]])
         dlon = lon2 - lon1 
         dlat = lat2 - lat1
-        
-
         #geopy.distance.geodesic(coords1, coords2).km
         if 6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2))<0.5:
             closeby.append([busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')',busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0]])
             closebyent.append(busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')')
-    option = st.selectbox('Select the name of the bus stop',closebyent)
+            dist.append(6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2)))
+    busstops = {'Name':closebyent,'Distance':dist}
+    busstopdf = pd.DataFrame(data=busstops)
+    busstopdf.sort_values("Distance")
+    option = st.selectbox('Select the name of the bus stop',busstopdf['Name'])
     if option != ' ':
         st.write('You selected:', option)  
         st.button(label='Refresh',on_click=busupdate(option))
