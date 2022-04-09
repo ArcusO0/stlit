@@ -21,21 +21,26 @@ def process_time(times):
             return("Arrived")
         else:
             output = (arrival_time-now)
-            output = str(output)
+            minutes,seconds = round(output.total_seconds()//60),round(output.total_seconds()%60)
+            if len(str(minutes)) <2:
+                minutes = '0'+str(minutes)
+            if len(str(seconds)) <2:
+                seconds = '0'+str(seconds)
+            output = "{min}:{sec}".format(min=minutes,sec=seconds)
             return output
     else:
         return('-')
 info = []
 def getbus(code):
     partinfo = []    
-    response = requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+str(code),headers = { 'AccountKey' : st.secrets["key"], 'accept' : 'application/json'})
+    response = requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+str(code),headers = { 'AccountKey' : 'qV1hBipQTZiK4AHSYmS92Q==', 'accept' : 'application/json'})
     for i in range(len(response.json()['Services'])):
         
         df = pd.DataFrame.from_dict(response.json()['Services'][i])
         partinfo = ([df.at['OriginCode','ServiceNo'],process_time(df.at['EstimatedArrival','NextBus'][11:19]),df.at['Type','NextBus'].replace("DD","2-deck").replace("SD","1-deck").replace("BD","Bendy")+' '+df.at['Feature','NextBus']+' '+df.at['Load','NextBus'],process_time(df.at['EstimatedArrival','NextBus2'][11:19]),df.at['Type','NextBus2'].replace("DD","2-deck").replace("SD","1-deck").replace("BD","Bendy")+' '+df.at['Feature','NextBus2']+' '+df.at['Load','NextBus2'],process_time(df.at['EstimatedArrival','NextBus3'][11:19]),df.at['Type','NextBus3'].replace("DD","2-deck").replace("SD","1-deck").replace("BD","Bendy")+' '+df.at['Feature','NextBus3']+' '+df.at['Load','NextBus3']])
         info.append(partinfo)
     myarray = np.array(info)
-    bustimes = pd.DataFrame(myarray,columns=['Bus Number','1st Bus ETA','1st Bus type','2nd Bus ETA','2nd Bus type','3rd Bus ETA','3rd Bus type'])
+    bustimes = pd.DataFrame(myarray,columns=['Bus Number','1st Bus ETA(MM:SS)','1st Bus type','2nd Bus ETA(MM:SS)','2nd Bus type','3rd Bus ETA(MM:SS)','3rd Bus type'])
     bustimes = bustimes.set_index('Bus Number')
     bustimes = bustimes.sort_index()
     return(bustimes)
