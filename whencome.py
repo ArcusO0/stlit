@@ -12,16 +12,17 @@ from bokeh.models import CustomJS
 from streamlit_bokeh_events import streamlit_bokeh_events
 import pytz
 from datetime import datetime
+def havesine(lat1,lon1,lat2,lon2):
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1
+    return(6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2)))
 def select(ops,bus,data):
     if ops == []:
         return '-'
     else:
         text = ''
-        if 'Bus operator' in ops:
-            text += data.at['OriginCode','Operator']
         if 'Seats available' in ops and len(text) != 1:
-            text += ' '+data.at['Load','NextBus']
-        elif 'Seats available' in ops and len(text) < 1:
             text += data.at['Load','NextBus']
         if 'Vehicle type' in ops and len(text) != 1:
             text += ' '+data.at['Type',bus].replace("DD","2-deck").replace("SD","1-deck").replace("BD","Bendy")
@@ -97,14 +98,12 @@ if lat != 0 and lon != 0:
     for i in range(busstopdata.shape[0]):
         coords1=(lat,lon)
         coords2 = (float(busstopdata.iloc[i][2]),float(busstopdata.iloc[i][3]))
-        lon1 ,lat1,lon2,lat2 = map(radians,[coords1[1],coords1[0],coords2[1],coords2[0]])
-        dlon = lon2 - lon1 
-        dlat = lat2 - lat1
+
         #geopy.distance.geodesic(coords1, coords2).km
-        if 6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2))<0.5:
+        if havesine(coords1[0],coords1[1],coords2[0],coords2[1])<0.5:
             closeby.append([busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')',busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0]])
             closebyent.append(busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')')
-            dist.append(6371*2*asin(sqrt(sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2)))
+            dist.append(havesine(coords1[0],coords1[1],coords2[0],coords2[1]))
             lats.append(float(busstopdata.iloc[i][2]))
             lons.append(float(busstopdata.iloc[i][3]))
     lats.append(lat)
@@ -114,17 +113,10 @@ if lat != 0 and lon != 0:
     busstopdf = pd.DataFrame(data=busstops)
     busstopdf['Distance'] = pd.to_numeric(busstopdf['Distance'])
     busstopdf = busstopdf.sort_values("Distance")
-    options = st.multiselect('Select the info to show:',['Bus operator','Seats available','Vehicle type','Wheel-chair accessibility'])
-    print(options)
+    options = st.multiselect('Select the info to show:',['Seats available','Vehicle type','Wheel-chair accessibility'])
     option = st.selectbox('Select the name of the bus stop',busstopdf['Name'])
     if option != ' ':
         st.write('You selected:', option)
-        if 'Bus operator' in options:
-            st.write('Bus operators:')
-            st.write('SBST: SBS Transit')
-            st.write('SMRT: SMRT Corporation')
-            st.write('TTS: Tower Transit Singapore')
-            st.write('GAS: Go Ahead Singapore')
         if  'Seats available'in options or'Wheel-chair accessibility' in options:
             optiontext = 'Legend:'
             if 'Seats available'in options:
@@ -135,4 +127,38 @@ if lat != 0 and lon != 0:
         st.button(label='Refresh',on_click=busupdate(option))
     else:
         st.write("You haven't selected anything")
-    st.map(plots,zoom = 14)
+    st.write("Plan your trips here, see if you have a direct bus")
+    stops = []
+    diststop = []
+    stopnum = []
+    def codeformat(code):
+        if len(str(code))<5:
+            return ('0'+str(code))
+        else:
+            return(str(code))
+    for i in range(busstopdata.shape[0]):
+        stops.append(busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')')
+        diststop.append(havesine(busstopdata.iloc[i][2],busstopdata.iloc[i][3],lat,lon))
+        stopnum.append(str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0]))
+    allstops = pd.DataFrame(data={'stopnum':stopnum,'info':stops,'dist':diststop})
+    allstops = allstops.set_index('stopnum')
+    allstops = allstops.sort_values("dist")
+    at = st.selectbox('Select the bus stop that you are at',allstops['info'])
+    goto = st.selectbox('Select the bus stop that you want to go to',allstops['info'])
+    atbus = pd.DataFrame.from_dict(requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+codeformat(str(allstops[at==allstops['info']].index[0])),headers = { 'AccountKey' : st.secrets['key'], 'accept' : 'application/json'}).json()['Services'])['ServiceNo']
+    gotobus = pd.DataFrame.from_dict(requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+codeformat(str(allstops[goto==allstops['info']].index[0])),headers = { 'AccountKey' : st.secrets['key'], 'accept' : 'application/json'}).json()['Services'])['ServiceNo']
+    busboth = ''
+    atbusarr,gotobusarr = [],[]
+    for i in range(len(atbus)):
+        atbusarr.append(atbus[i])
+    for i in range(len(gotobus)):
+        gotobusarr.append(gotobus[i])
+    for i in range(len(atbusarr)):
+        if atbusarr[i] in gotobusarr and busboth == '':
+            busboth += str(atbusarr[i])
+        elif atbusarr[i] in gotobusarr and busboth != '':
+            busboth += ' ' + str(atbusarr[i])
+    if busboth == '':
+        st.write("There are no matching buses")
+    else:
+        st.write("The matching buses are: "+busboth)
