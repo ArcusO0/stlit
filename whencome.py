@@ -37,8 +37,9 @@ def select(ops,bus,data):
 def process_time(times):
     if times != '':
         now = datetime.now(pytz.timezone('Asia/Singapore'))
-        now = datetime.strptime(datetime.strftime(now,"%H:%M:%S"),"%H:%M:%S")
-        arrival_time = datetime.strptime(times,"%H:%M:%S")
+        now = datetime.strptime(datetime.strftime(now,"%Y-%m-%d %H:%M:%S"),"%Y-%m-%d %H:%M:%S")
+        print(now)
+        arrival_time = datetime.strptime(times[0:19].replace('T',' '),"%Y-%m-%d %H:%M:%S")
         if arrival_time < now:
             return("Arrived")
         else:
@@ -58,7 +59,7 @@ def getbus(code):
     response = requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+str(code),headers = { 'AccountKey' : st.secrets['key'], 'accept' : 'application/json'})
     for i in range(len(response.json()['Services'])):
         df = pd.DataFrame.from_dict(response.json()['Services'][i])
-        partinfo = ([df.at['OriginCode','ServiceNo'],process_time(df.at['EstimatedArrival','NextBus'][11:19]),select(options,'NextBus',df),process_time(df.at['EstimatedArrival','NextBus2'][11:19]),select(options,'NextBus2',df),process_time(df.at['EstimatedArrival','NextBus3'][11:19]),select(options,'NextBus3',df)])
+        partinfo = ([df.at['OriginCode','ServiceNo'],process_time(df.at['EstimatedArrival','NextBus']),select(options,'NextBus',df),process_time(df.at['EstimatedArrival','NextBus2'][0:19]),select(options,'NextBus2',df),process_time(df.at['EstimatedArrival','NextBus3'][0:19]),select(options,'NextBus3',df)])
         info.append(partinfo)
     myarray = np.array(info)
     bustimes = pd.DataFrame(myarray,columns=['Bus Number','1st Bus ETA(MM:SS)','1st Bus type','2nd Bus ETA(MM:SS)','2nd Bus type','3rd Bus ETA(MM:SS)','3rd Bus type'])
@@ -149,8 +150,6 @@ if lat != 0 and lon != 0:
     gotobus = pd.DataFrame.from_dict(requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+codeformat(str(allstops[goto==allstops['info']].index[0])),headers = { 'AccountKey' : st.secrets['key'], 'accept' : 'application/json'}).json()['Services'])['ServiceNo']
     busboth = ''
     atbusarr,gotobusarr = [],[]
-    for i in range(len(atbus)):
-        atbusarr.append(atbus[i])
     for i in range(len(gotobus)):
         gotobusarr.append(gotobus[i])
     for i in range(len(atbusarr)):
