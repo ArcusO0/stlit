@@ -128,36 +128,3 @@ if lat != 0 and lon != 0:
         st.button(label='Refresh',on_click=busupdate(option))
     else:
         st.write("You haven't selected anything")
-    st.write("Plan your trips here, see if you have a direct bus")
-    stops = []
-    diststop = []
-    stopnum = []
-    def codeformat(code):
-        if len(str(code))<5:
-            return ('0'+str(code))
-        else:
-            return(str(code))
-    for i in range(busstopdata.shape[0]):
-        stops.append(busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')')
-        diststop.append(havesine(busstopdata.iloc[i][2],busstopdata.iloc[i][3],lat,lon))
-        stopnum.append(str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0]))
-    allstops = pd.DataFrame(data={'stopnum':stopnum,'info':stops,'dist':diststop})
-    allstops = allstops.set_index('stopnum')
-    allstops = allstops.sort_values("dist")
-    at = st.selectbox('Select the bus stop that you are at',allstops['info'])
-    goto = st.selectbox('Select the bus stop that you want to go to',allstops['info'])
-    atbus = pd.DataFrame.from_dict(requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+codeformat(str(allstops[at==allstops['info']].index[0])),headers = { 'AccountKey' : st.secrets['key'], 'accept' : 'application/json'}).json()['Services'])['ServiceNo']
-    gotobus = pd.DataFrame.from_dict(requests.get("http://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode="+codeformat(str(allstops[goto==allstops['info']].index[0])),headers = { 'AccountKey' : st.secrets['key'], 'accept' : 'application/json'}).json()['Services'])['ServiceNo']
-    busboth = ''
-    atbusarr,gotobusarr = [],[]
-    for i in range(len(gotobus)):
-        gotobusarr.append(gotobus[i])
-    for i in range(len(atbusarr)):
-        if atbusarr[i] in gotobusarr and busboth == '':
-            busboth += str(atbusarr[i])
-        elif atbusarr[i] in gotobusarr and busboth != '':
-            busboth += ' ' + str(atbusarr[i])
-    if busboth == '':
-        st.write("There are no matching buses")
-    else:
-        st.write("The matching buses are: "+busboth)
