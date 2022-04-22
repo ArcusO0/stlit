@@ -95,8 +95,6 @@ if result:
         lon = result.get("GET_LOCATION")['lon']
         map_data = pd.DataFrame({'lat':[lat],'lon':[lon]})      
 if lat != 0 and lon != 0:
-    lat = 1.3761501941852636
-    lon = 103.84999728441719
     busstopnum = busstopdata.index.values.tolist()
     for i in range(busstopdata.shape[0]):
         coords1=(lat,lon)
