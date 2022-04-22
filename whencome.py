@@ -38,7 +38,6 @@ def process_time(times):
     if times != '':
         now = datetime.now(pytz.timezone('Asia/Singapore'))
         now = datetime.strptime(datetime.strftime(now,"%Y-%m-%d %H:%M:%S"),"%Y-%m-%d %H:%M:%S")
-        print(now)
         arrival_time = datetime.strptime(times[0:19].replace('T',' '),"%Y-%m-%d %H:%M:%S")
         if arrival_time < now:
             return("Arrived")
@@ -96,20 +95,24 @@ if result:
         lon = result.get("GET_LOCATION")['lon']
         map_data = pd.DataFrame({'lat':[lat],'lon':[lon]})      
 if lat != 0 and lon != 0:
+    lat = 1.3761501941852636
+    lon = 103.84999728441719
+    busstopnum = busstopdata.index.values.tolist()
     for i in range(busstopdata.shape[0]):
         coords1=(lat,lon)
         coords2 = (float(busstopdata.iloc[i][2]),float(busstopdata.iloc[i][3]))
 
         #geopy.distance.geodesic(coords1, coords2).km
+        
+
         if havesine(coords1[0],coords1[1],coords2[0],coords2[1])<0.5:
-            closeby.append([busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')',busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0]])
-            closebyent.append(busstopdata.iloc[i][1]+' ('+str(busstopdata[busstopdata['Description']==busstopdata.iloc[i][1]].index[0])+')')
+            closeby.append([busstopdata.iloc[i][1]+' ('+str(busstopnum[i]) + ')',busstopnum[i]])
+            closebyent.append(busstopdata.iloc[i][1]+' ('+str(busstopnum[i])+')')
             dist.append(havesine(coords1[0],coords1[1],coords2[0],coords2[1]))
             lats.append(float(busstopdata.iloc[i][2]))
             lons.append(float(busstopdata.iloc[i][3]))
     lats.append(lat)
     lons.append(lon)
-    plots = pd.DataFrame(data={'lat':lats,'lon':lons})
     busstops = {'Name':closebyent,'Distance':dist}
     busstopdf = pd.DataFrame(data=busstops)
     busstopdf['Distance'] = pd.to_numeric(busstopdf['Distance'])
